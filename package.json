@@ -1,0 +1,32 @@
+
+{
+  "name": "viht-game",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy:bot": "supabase functions deploy telegram-bot --no-verify-jwt",
+    "deploy:discord": "supabase functions deploy discord-publisher --no-verify-jwt"
+  },
+  "dependencies": {
+    "@discord/embedded-app-sdk": "^1.2.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "clsx": "^2.1.0",
+    "framer-motion": "^11.0.0",
+    "lucide-react": "^0.344.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tailwind-merge": "^2.2.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.64",
+    "@types/react-dom": "^18.2.21",
+    "@vitejs/plugin-react": "^4.2.1",
+    "supabase": "^1.145.0",
+    "typescript": "^5.2.2",
+    "vite": "^5.1.6"
+  }
+}
