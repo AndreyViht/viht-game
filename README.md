@@ -8,12 +8,12 @@
 1. Сначала идет раздел `Discord Social SDK` (Overview, Downloads...). **Это не то**.
 2. Ниже идет раздел `Activities` (Settings, **URL Mappings**...). **ТЕБЕ НУЖНО СЮДА!**
 
-### ✅ ИНСТРУКЦИЯ ПО ШАГАМ:
+### ✅ ИНСТРУКЦИЯ ПО ШАГАМ (Vercel):
 1. В меню слева найди заголовок **Activities** (он под Social SDK).
 2. Нажми на **URL Mappings**.
 3. Нажми кнопку **Add New Mapping**.
 4. В поле **Prefix** напиши: `/`
-5. В поле **Target** вставь ссылку на сайт: `https://helpful-manatee-cf042c.netlify.app`
+5. В поле **Target** вставь новую ссылку Vercel: `https://viht-game.vercel.app`
 6. Нажми **Save** (или Finish).
 
 *Без этого шага кнопка "Запустить" не будет открывать игру!*

@@ -1,3 +1,4 @@
+
 // Setup: npm install -g supabase
 // Login: supabase login
 // Deploy: supabase functions deploy telegram-bot --no-verify-jwt
@@ -7,8 +8,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 const BOT_TOKEN = "8547341094:AAFgpWs1qXvUfdXq8w_39W1P_71DUwh4tZQ";
 const ADMIN_ID = 1464327605;
 
-// Ссылка на WebApp
-const WEB_APP_URL = "https://helpful-manatee-cf042c.netlify.app/"; 
+// Ссылка на WebApp (Vercel)
+const WEB_APP_URL = "https://viht-game.vercel.app"; 
 
 console.log(`Bot Function Started. Admin ID: ${ADMIN_ID}`);
 
