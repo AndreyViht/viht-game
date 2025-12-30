@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { View } from '../types';
-import { Rocket, Bomb, Coins, Dices, CircleDot, Disc, Club, LayoutGrid, Search } from 'lucide-react';
+import { Rocket, Bomb, Coins, Dices, CircleDot, Disc, Club, LayoutGrid, Search, Box } from 'lucide-react';
 
 interface GamesListProps {
   setView: (view: View) => void;
@@ -10,13 +10,14 @@ interface GamesListProps {
 export const GamesList: React.FC<GamesListProps> = ({ setView }) => {
   const games = [
     { id: View.CRASH, name: 'CRASH', icon: Rocket, from: 'bg-indigo-600', to: 'bg-indigo-900', desc: '🚀 Летим на Луну' },
+    { id: View.CASES, name: 'CASES', icon: Box, from: 'bg-yellow-600', to: 'bg-yellow-900', desc: '📦 Открой удачу' },
     { id: View.MINES, name: 'MINES', icon: Bomb, from: 'bg-emerald-600', to: 'bg-emerald-900', desc: '💣 Не взорвись' },
     { id: View.SLOTS, name: 'SLOTS', icon: Coins, from: 'bg-pink-600', to: 'bg-pink-900', desc: '🎰 Джекпот тут' },
     { id: View.ROULETTE, name: 'ROULETTE', icon: Disc, from: 'bg-red-600', to: 'bg-red-900', desc: '🔴 Красное/Черное ⚫' },
     { id: View.DICE, name: 'DICE', icon: Dices, from: 'bg-blue-600', to: 'bg-blue-900', desc: '🎲 Шансы 0-100' },
-    { id: View.COINFLIP, name: 'COINFLIP', icon: CircleDot, from: 'bg-yellow-500', to: 'bg-yellow-800', desc: '🦅 Орел или Решка' },
+    { id: View.COINFLIP, name: 'COINFLIP', icon: CircleDot, from: 'bg-orange-500', to: 'bg-orange-800', desc: '🦅 Орел или Решка' },
     { id: View.KENO, name: 'KENO', icon: LayoutGrid, from: 'bg-purple-600', to: 'bg-purple-900', desc: '🔢 Угадай числа' },
-    { id: View.HILO, name: 'HI-LO', icon: Club, from: 'bg-orange-500', to: 'bg-orange-800', desc: '🃏 Выше или Ниже' },
+    { id: View.HILO, name: 'HI-LO', icon: Club, from: 'bg-teal-500', to: 'bg-teal-800', desc: '🃏 Выше или Ниже' },
   ];
 
   return (

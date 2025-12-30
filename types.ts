@@ -10,6 +10,8 @@ export enum View {
   ROULETTE = 'ROULETTE',
   KENO = 'KENO',
   HILO = 'HILO',
+  CASES = 'CASES',
+  MINING = 'MINING',
   WALLET = 'WALLET',
   ADMIN = 'ADMIN',
   SHOP = 'SHOP',
@@ -20,7 +22,7 @@ export interface UserState {
   balance: number;
 }
 
-export type GameId = 'crash' | 'mines' | 'slots' | 'coinflip' | 'dice' | 'roulette' | 'keno' | 'hilo';
+export type GameId = 'crash' | 'mines' | 'slots' | 'coinflip' | 'dice' | 'roulette' | 'keno' | 'hilo' | 'cases';
 
 export interface GameHistoryItem {
   id: number;

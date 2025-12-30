@@ -7,6 +7,8 @@ import { Admin } from './views/Admin';
 import { GamesList } from './views/GamesList';
 import { Shop } from './views/Shop';
 import { Leaders } from './views/Leaders';
+import { Mining } from './views/Mining';
+import { Cases } from './views/Cases';
 import { MinesGame } from './views/games/MinesGame';
 import { CrashGame } from './views/games/CrashGame';
 import { SlotsGame } from './views/games/SlotsGame';
@@ -17,7 +19,7 @@ import { KenoGame } from './views/games/KenoGame';
 import { HiLoGame } from './views/games/HiLoGame';
 import { View, GameSettings, ShopItem, Booster } from './types';
 import { supabase } from './lib/supabase';
-import { Smartphone, Zap } from 'lucide-react';
+import { Zap } from 'lucide-react';
 import { DiscordSDK } from "@discord/embedded-app-sdk";
 import { Confetti } from './components/ui/Confetti';
 
@@ -237,6 +239,10 @@ function App() {
         return <Shop balance={balance} onBuy={handleBuy} activeDecoration={activeDecoration} activeBooster={activeBooster} />;
       case View.LEADERS:
         return <Leaders />;
+      case View.MINING:
+        return <Mining balance={balance} setBalance={setBalance} />;
+      case View.CASES:
+        return <Cases balance={balance} onGameEnd={handleGameEnd} />;
       case View.CRASH:
         return <CrashGame balance={balance} onGameEnd={handleGameEnd} settings={getSettings('crash')} />;
       case View.MINES:

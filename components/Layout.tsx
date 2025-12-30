@@ -11,7 +11,8 @@ import {
   Crown,
   ShoppingBag,
   User,
-  Trophy
+  Trophy,
+  Cpu
 } from 'lucide-react';
 import { View } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -31,11 +32,12 @@ export const Layout: React.FC<LayoutProps> = ({ children, balance, currentView, 
   const [showAdminPopup, setShowAdminPopup] = useState(false);
 
   // Updated Mobile Navigation (Bottom)
+  // Replaced Leaders with Mining for better user retention
   const mobileNavItems = [
     { view: View.HOME, label: 'Кабинет', icon: User },
     { view: View.GAMES_LIST, label: 'Игры', icon: Gamepad2 },
+    { view: View.MINING, label: 'Майнинг', icon: Cpu },
     { view: View.SHOP, label: 'Магазин', icon: ShoppingBag },
-    { view: View.LEADERS, label: 'Топ', icon: Trophy },
     { view: View.WALLET, label: 'Кошелек', icon: Wallet },
   ];
 
