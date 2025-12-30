@@ -1,10 +1,26 @@
 
 import React, { useState } from 'react';
-import { ShieldCheck, Wallet as WalletIcon, AlertTriangle, Crown, Star, Lock, Info, ExternalLink } from 'lucide-react';
+import { ShieldCheck, Wallet as WalletIcon, AlertTriangle, Crown, Star, Lock, Info, ExternalLink, Send, Ticket, ArrowRight } from 'lucide-react';
 import { Button } from '../components/ui/Button';
+import { supabase } from '../lib/supabase';
 
-export const Wallet = () => {
-  const [activeTab, setActiveTab] = useState<'balance' | 'levels'>('balance');
+interface WalletProps {
+    userId?: number;
+    balance: number;
+    setBalance: (b: number) => void;
+}
+
+export const Wallet: React.FC<WalletProps> = ({ userId, balance, setBalance }) => {
+  const [activeTab, setActiveTab] = useState<'balance' | 'levels' | 'transfer' | 'promo'>('balance');
+  
+  // Transfer state
+  const [receiverId, setReceiverId] = useState('');
+  const [amount, setAmount] = useState('');
+  const [transferLoading, setTransferLoading] = useState(false);
+
+  // Promo state
+  const [promoCode, setPromoCode] = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
 
   // Fake stats for levels (in a real app, pass this via props)
   const currentLevel = 2;
@@ -20,29 +36,76 @@ export const Wallet = () => {
       { lvl: 5, name: "ЛЕГЕНДА", req: 1000000, reward: "Секретные игры" },
   ];
 
+  const handleTransfer = async () => {
+      if (!userId || !receiverId || !amount) return;
+      const amountNum = Number(amount);
+      if (amountNum <= 0 || amountNum > balance) {
+          alert('Некорректная сумма');
+          return;
+      }
+
+      setTransferLoading(true);
+
+      // В реальном проекте тут нужен RPC вызов 'transfer_funds'
+      // Имитируем снятие средств локально и обновление
+      const { error } = await supabase.rpc('transfer_balance', {
+          sender_tg_id: userId,
+          receiver_tg_id: Number(receiverId), // User enters Telegram ID or Internal ID
+          amount: amountNum
+      });
+
+      if (error) {
+          alert('Ошибка перевода! Проверьте ID получателя.');
+      } else {
+          alert('Перевод успешно отправлен!');
+          setBalance(balance - amountNum);
+          setAmount('');
+          setReceiverId('');
+      }
+      setTransferLoading(false);
+  };
+
+  const handlePromo = async () => {
+      if (!promoCode) return;
+      setPromoLoading(true);
+
+      // Простая заглушка для промокодов
+      if (promoCode.toUpperCase() === 'VIHT2024') {
+          const reward = 5000;
+          await supabase.rpc('admin_update_balance', { p_telegram_id: userId, p_amount: reward });
+          alert(`Промокод активирован! +${reward} ₽`);
+          setBalance(balance + reward);
+          // В реальном проекте нужно сохранять использование промокода в БД
+      } else {
+          alert('Неверный промокод или он уже использован.');
+      }
+      setPromoLoading(false);
+      setPromoCode('');
+  };
+
   return (
-    <div className="max-w-xl mx-auto py-6 px-4 min-h-screen flex flex-col relative">
+    <div className="max-w-xl mx-auto py-6 px-4 min-h-screen flex flex-col relative pb-24">
       <div className="absolute top-6 right-4">
          <a href="https://t.me/anviht" target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
             <ExternalLink size={16} />
          </a>
       </div>
 
-      <h1 className="text-3xl font-black italic uppercase text-center mb-6">Кошелек и Уровни</h1>
+      <h1 className="text-3xl font-black italic uppercase text-center mb-6">Кошелек</h1>
 
-      {/* Tabs */}
-      <div className="flex bg-white/5 p-1 rounded-xl mb-8">
-          <button 
-            onClick={() => setActiveTab('balance')}
-            className={`flex-1 py-3 rounded-lg font-bold text-sm transition-all ${activeTab === 'balance' ? 'bg-brand text-white shadow-lg' : 'text-slate-400'}`}
-          >
-             БАЛАНС
+      {/* Scrollable Tabs */}
+      <div className="flex bg-white/5 p-1 rounded-xl mb-8 overflow-x-auto no-scrollbar gap-1">
+          <button onClick={() => setActiveTab('balance')} className={`px-4 py-2 rounded-lg font-bold text-xs whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === 'balance' ? 'bg-brand text-white shadow-lg' : 'text-slate-400'}`}>
+             <WalletIcon size={14} /> БАЛАНС
           </button>
-          <button 
-            onClick={() => setActiveTab('levels')}
-            className={`flex-1 py-3 rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2 ${activeTab === 'levels' ? 'bg-yellow-500 text-black shadow-lg' : 'text-slate-400'}`}
-          >
-             <Crown size={16} /> VIP УРОВНИ
+          <button onClick={() => setActiveTab('transfer')} className={`px-4 py-2 rounded-lg font-bold text-xs whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === 'transfer' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400'}`}>
+             <Send size={14} /> ПЕРЕВОД
+          </button>
+          <button onClick={() => setActiveTab('promo')} className={`px-4 py-2 rounded-lg font-bold text-xs whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === 'promo' ? 'bg-pink-600 text-white shadow-lg' : 'text-slate-400'}`}>
+             <Ticket size={14} /> ПРОМО
+          </button>
+          <button onClick={() => setActiveTab('levels')} className={`px-4 py-2 rounded-lg font-bold text-xs whitespace-nowrap transition-all flex items-center gap-2 ${activeTab === 'levels' ? 'bg-yellow-500 text-black shadow-lg' : 'text-slate-400'}`}>
+             <Crown size={14} /> VIP
           </button>
       </div>
 
@@ -56,9 +119,9 @@ export const Wallet = () => {
                   </div>
 
                   <h2 className="text-xl font-bold mb-2">Ваш Баланс</h2>
-                  <p className="text-slate-400 text-sm mb-6">
-                      Это виртуальный игровой баланс. Он используется исключительно для развлечения в рамках нашего Social Casino.
-                  </p>
+                  <div className="text-4xl font-black font-mono text-white mb-4 tracking-tighter">
+                      {balance.toLocaleString()} ₽
+                  </div>
 
                   <div className="bg-white/5 border border-white/5 rounded-xl p-4 text-left">
                       <div className="flex items-center gap-3 mb-2">
@@ -69,27 +132,88 @@ export const Wallet = () => {
                           Средства с этого баланса <strong>не подлежат выводу</strong> в реальные деньги. Это очки опыта и статуса.
                       </p>
                   </div>
-                  
-                  <div className="mt-4 bg-white/5 border border-white/5 rounded-xl p-4 text-left">
-                      <div className="flex items-center gap-3 mb-2">
-                          <ShieldCheck className="text-green-400" size={20} />
-                          <h3 className="font-bold text-white">Авто-пополнение</h3>
-                      </div>
-                      <p className="text-xs text-slate-400 leading-relaxed">
-                          Если вы проиграли весь баланс, он может быть автоматически пополнен системой (ежедневный бонус или админ-начисление), чтобы вы могли продолжить игру.
-                      </p>
-                  </div>
               </div>
+          </div>
+      )}
 
-              <div className="p-4 bg-red-900/10 border border-red-500/20 rounded-xl">
-                    <div className="flex items-center gap-2 mb-2 text-red-500">
-                    <AlertTriangle size={16} />
-                    <h4 className="text-xs font-black uppercase tracking-wider">ОТКАЗ ОТ ОТВЕТСТВЕННОСТИ</h4>
-                    </div>
-                    <p className="text-[10px] text-slate-400 leading-relaxed text-justify">
-                    Viht Game — это социальный симулятор. Играя здесь, вы соглашаетесь с тем, что валюта не имеет ценности. Разработчики не несут ответственности за ваши эмоции. Только 18+.
-                    </p>
-              </div>
+      {activeTab === 'transfer' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+               <div className="bg-blue-900/10 border border-blue-500/20 rounded-3xl p-6">
+                   <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                       <Send size={24} className="text-blue-500" /> Перевод другу
+                   </h2>
+                   
+                   <div className="space-y-4">
+                       <div>
+                           <label className="text-xs font-bold text-slate-400 uppercase mb-2 block">ID Получателя (Telegram ID)</label>
+                           <input 
+                              type="number" 
+                              placeholder="Например: 1464327605"
+                              value={receiverId}
+                              onChange={(e) => setReceiverId(e.target.value)}
+                              className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white font-mono focus:border-blue-500 outline-none"
+                           />
+                       </div>
+                       <div>
+                           <label className="text-xs font-bold text-slate-400 uppercase mb-2 block">Сумма</label>
+                           <input 
+                              type="number" 
+                              placeholder="Минимум 100"
+                              value={amount}
+                              onChange={(e) => setAmount(e.target.value)}
+                              className="w-full bg-black/40 border border-white/10 rounded-xl p-4 text-white font-mono focus:border-blue-500 outline-none"
+                           />
+                       </div>
+                       
+                       <Button 
+                          onClick={handleTransfer} 
+                          disabled={transferLoading}
+                          className="w-full h-14 bg-gradient-to-r from-blue-600 to-indigo-600 shadow-[0_0_20px_rgba(37,99,235,0.4)]"
+                       >
+                           {transferLoading ? "Отправка..." : "ОТПРАВИТЬ"}
+                       </Button>
+                   </div>
+               </div>
+               
+               <p className="text-xs text-center text-slate-500">
+                   Комиссия за перевод: 0%. Переводы необратимы.
+               </p>
+          </div>
+      )}
+
+      {activeTab === 'promo' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+               <div className="bg-pink-900/10 border border-pink-500/20 rounded-3xl p-6 relative overflow-hidden">
+                   <div className="absolute top-0 right-0 w-32 h-32 bg-pink-500/10 blur-[50px] pointer-events-none"></div>
+                   
+                   <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                       <Ticket size={24} className="text-pink-500" /> Активация кода
+                   </h2>
+                   
+                   <div className="flex gap-2">
+                       <input 
+                          type="text" 
+                          placeholder="Введи промокод"
+                          value={promoCode}
+                          onChange={(e) => setPromoCode(e.target.value)}
+                          className="flex-1 bg-black/40 border border-white/10 rounded-xl p-4 text-white font-mono uppercase focus:border-pink-500 outline-none"
+                       />
+                       <button 
+                          onClick={handlePromo}
+                          disabled={promoLoading}
+                          className="bg-pink-600 hover:bg-pink-500 text-white rounded-xl px-4 flex items-center justify-center"
+                       >
+                           <ArrowRight size={24} />
+                       </button>
+                   </div>
+                   
+                   <div className="mt-6 flex items-start gap-3 bg-white/5 p-3 rounded-xl">
+                       <Info size={16} className="text-slate-400 mt-0.5 shrink-0" />
+                       <p className="text-xs text-slate-400">
+                           Ищи промокоды в нашем Telegram канале. Они дают бонус к балансу, бесплатные вращения или уникальные украшения.
+                       </p>
+                   </div>
+               </div>
           </div>
       )}
 

@@ -1,27 +1,72 @@
 
 import React, { useEffect, useState } from 'react';
 import { View, GameHistoryItem } from '../types';
-import { Rocket, Bomb, Coins, TrendingUp, History, Trophy, Sparkles, User, Zap, Crown } from 'lucide-react';
+import { Rocket, Bomb, TrendingUp, History, User, Zap, Crown, Gift, Clock } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { supabase } from '../lib/supabase';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface HomeProps {
   setView: (view: View) => void;
   userId?: number;
   user?: any;
   activeBooster?: any;
+  setBalance?: (b: number) => void;
 }
 
-export const Home: React.FC<HomeProps> = ({ setView, userId, user, activeBooster }) => {
+export const Home: React.FC<HomeProps> = ({ setView, userId, user, activeBooster, setBalance }) => {
   const [history, setHistory] = useState<GameHistoryItem[]>([]);
   const [stats, setStats] = useState({ won: 0, lost: 0, total_games: 0 });
+  const [bonusAvailable, setBonusAvailable] = useState(false);
+  const [loadingBonus, setLoadingBonus] = useState(false);
 
   useEffect(() => {
     if (userId) {
         fetchHistory();
+        checkBonus();
     }
   }, [userId]);
+
+  const checkBonus = () => {
+      const lastClaim = localStorage.getItem(`daily_bonus_${userId}`);
+      if (!lastClaim) {
+          setBonusAvailable(true);
+      } else {
+          const now = new Date().getTime();
+          const last = parseInt(lastClaim);
+          // 24 часа = 86400000 мс
+          if (now - last > 86400000) {
+              setBonusAvailable(true);
+          } else {
+              setBonusAvailable(false);
+          }
+      }
+  };
+
+  const claimBonus = async () => {
+      setLoadingBonus(true);
+      const amount = Math.floor(Math.random() * (5000 - 1000 + 1)) + 1000; // 1000-5000 случайная награда
+      
+      // Update local storage
+      localStorage.setItem(`daily_bonus_${userId}`, new Date().getTime().toString());
+      
+      // Update Server
+      if (userId && setBalance) {
+          const { data } = await supabase.rpc('admin_update_balance', {
+              p_telegram_id: userId,
+              p_amount: amount
+          });
+          // Update local UI
+          // Мы не знаем текущий баланс здесь точно, но можем предположить
+          // Лучше передать setBalance из App
+          // Для простоты, сделаем "грязный" апдейт через refetch или перезагрузку,
+          // но лучше просто алерт
+          alert(`Вы получили ежедневный бонус: ${amount} ₽!`);
+          window.location.reload(); // Простой способ обновить баланс в App
+      }
+      setLoadingBonus(false);
+      setBonusAvailable(false);
+  };
 
   const fetchHistory = async () => {
     // Fetch last 5 games for this user
@@ -36,8 +81,7 @@ export const Home: React.FC<HomeProps> = ({ setView, userId, user, activeBooster
         setHistory(data);
         // Calculate basic stats from these 5 (or fetch real agg stats)
         const won = data.filter(g => g.win > 0).reduce((acc, curr) => acc + curr.win, 0);
-        const lost = data.filter(g => g.win === 0).reduce((acc, curr) => acc + curr.bet, 0);
-        setStats({ won, lost, total_games: data.length });
+        setStats({ won, lost: 0, total_games: data.length });
     }
   };
 
@@ -79,6 +123,37 @@ export const Home: React.FC<HomeProps> = ({ setView, userId, user, activeBooster
           </div>
       </div>
 
+      {/* DAILY BONUS BANNER */}
+      {bonusAvailable ? (
+          <motion.button 
+            initial={{ scale: 0.95 }} animate={{ scale: 1 }}
+            onClick={claimBonus}
+            disabled={loadingBonus}
+            className="bg-gradient-to-r from-pink-600 to-purple-600 rounded-2xl p-4 flex items-center justify-between shadow-[0_0_20px_rgba(236,72,153,0.4)] relative overflow-hidden"
+          >
+              <div className="flex items-center gap-3 relative z-10">
+                  <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-white animate-bounce">
+                      <Gift size={24} />
+                  </div>
+                  <div className="text-left">
+                      <h3 className="font-bold text-white uppercase italic">Ежедневный Бонус</h3>
+                      <p className="text-xs text-pink-100">Нажми, чтобы забрать награду!</p>
+                  </div>
+              </div>
+              <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-black/20 to-transparent"></div>
+          </motion.button>
+      ) : (
+          <div className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center gap-3 opacity-70">
+              <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-slate-500">
+                  <Clock size={20} />
+              </div>
+              <div>
+                  <h3 className="font-bold text-slate-300 text-sm">Бонус получен</h3>
+                  <p className="text-xs text-slate-500">Заходи завтра за новым!</p>
+              </div>
+          </div>
+      )}
+
       {/* 2. Active Booster Widget */}
       {activeBooster ? (
           <motion.div 
@@ -98,13 +173,38 @@ export const Home: React.FC<HomeProps> = ({ setView, userId, user, activeBooster
                  1 ИГРА
              </div>
           </motion.div>
-      ) : (
-          <div onClick={() => setView(View.SHOP)} className="border border-dashed border-white/10 rounded-2xl p-4 flex items-center justify-center gap-2 text-slate-500 hover:bg-white/5 cursor-pointer transition-colors">
-              <Sparkles size={16} />
-              <span className="text-xs font-bold uppercase">Нет активных улучшений (Купить)</span>
-          </div>
-      )}
+      ) : null}
 
+      {/* 4. Popular Games */}
+      <div>
+          <div className="flex items-center justify-between mb-3 px-1">
+             <h3 className="text-sm font-bold text-slate-400 uppercase flex items-center gap-2">
+                <TrendingUp size={16} /> Популярное
+             </h3>
+             <button onClick={() => setView(View.GAMES_LIST)} className="text-[10px] text-brand hover:text-white transition-colors">
+                ВСЕ ИГРЫ
+             </button>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+             <div onClick={() => setView(View.CRASH)} className="bg-[#151517] rounded-2xl p-4 relative overflow-hidden group border border-white/5 cursor-pointer">
+                 <div className="absolute right-[-10px] bottom-[-10px] opacity-20 group-hover:opacity-40 transition-opacity">
+                     <Rocket size={60} className="text-indigo-500" />
+                 </div>
+                 <h4 className="font-black italic text-lg uppercase z-10 relative">Crash</h4>
+                 <p className="text-[10px] text-slate-500 z-10 relative">Популярность: 🔥🔥🔥</p>
+             </div>
+             
+             <div onClick={() => setView(View.MINES)} className="bg-[#151517] rounded-2xl p-4 relative overflow-hidden group border border-white/5 cursor-pointer">
+                 <div className="absolute right-[-10px] bottom-[-10px] opacity-20 group-hover:opacity-40 transition-opacity">
+                     <Bomb size={60} className="text-emerald-500" />
+                 </div>
+                 <h4 className="font-black italic text-lg uppercase z-10 relative">Mines</h4>
+                 <p className="text-[10px] text-slate-500 z-10 relative">Выбор игроков</p>
+             </div>
+          </div>
+      </div>
+      
       {/* 3. Game History */}
       <div>
           <h3 className="text-sm font-bold text-slate-400 uppercase mb-3 flex items-center gap-2 px-1">
@@ -136,36 +236,6 @@ export const Home: React.FC<HomeProps> = ({ setView, userId, user, activeBooster
               )) : (
                   <div className="text-center py-8 text-slate-600 text-xs">Нет истории игр</div>
               )}
-          </div>
-      </div>
-
-      {/* 4. Popular Games */}
-      <div>
-          <div className="flex items-center justify-between mb-3 px-1">
-             <h3 className="text-sm font-bold text-slate-400 uppercase flex items-center gap-2">
-                <TrendingUp size={16} /> Популярное
-             </h3>
-             <button onClick={() => setView(View.GAMES_LIST)} className="text-[10px] text-brand hover:text-white transition-colors">
-                ВСЕ ИГРЫ
-             </button>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-3">
-             <div onClick={() => setView(View.CRASH)} className="bg-[#151517] rounded-2xl p-4 relative overflow-hidden group border border-white/5 cursor-pointer">
-                 <div className="absolute right-[-10px] bottom-[-10px] opacity-20 group-hover:opacity-40 transition-opacity">
-                     <Rocket size={60} className="text-indigo-500" />
-                 </div>
-                 <h4 className="font-black italic text-lg uppercase z-10 relative">Crash</h4>
-                 <p className="text-[10px] text-slate-500 z-10 relative">Популярность: 🔥🔥🔥</p>
-             </div>
-             
-             <div onClick={() => setView(View.MINES)} className="bg-[#151517] rounded-2xl p-4 relative overflow-hidden group border border-white/5 cursor-pointer">
-                 <div className="absolute right-[-10px] bottom-[-10px] opacity-20 group-hover:opacity-40 transition-opacity">
-                     <Bomb size={60} className="text-emerald-500" />
-                 </div>
-                 <h4 className="font-black italic text-lg uppercase z-10 relative">Mines</h4>
-                 <p className="text-[10px] text-slate-500 z-10 relative">Выбор игроков</p>
-             </div>
           </div>
       </div>
 

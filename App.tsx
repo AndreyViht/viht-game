@@ -19,6 +19,7 @@ import { View, GameSettings, ShopItem, Booster } from './types';
 import { supabase } from './lib/supabase';
 import { Smartphone, Zap } from 'lucide-react';
 import { DiscordSDK } from "@discord/embedded-app-sdk";
+import { Confetti } from './components/ui/Confetti';
 
 // Telegram types workaround
 declare global {
@@ -36,6 +37,7 @@ function App() {
   const [user, setUser] = useState<any>(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [gameSettings, setGameSettings] = useState<GameSettings[]>([]);
+  const [showConfetti, setShowConfetti] = useState(false);
   
   // Inventory State (Frontend Mock for now)
   const [activeDecoration, setActiveDecoration] = useState<string>('');
@@ -160,13 +162,6 @@ function App() {
                 finalWin = bet; // Return 100%
                 setActiveBooster(null); // Consume
             } else {
-                // If it was a win booster, we keep it for next win (unless we want to burn it on loss?)
-                // Let's decide: Win Boosters burn only on win. Insurance burns on loss.
-                // Simplified: Win boosters burn on loss too? No, "In every game you choose".
-                // Let's keep it simple: Booster stays until used successfully OR we can make it consumable per game attempt.
-                // Prompt: "if win takes x3, if lose then no". Implies it's a gamble to USE the booster.
-                // So we consume it regardless of result?
-                // Let's consume it on ATTEMPT to prevent hoarding.
                 setActiveBooster(null);
             }
         }
@@ -174,6 +169,12 @@ function App() {
 
     const predictedBalance = balance - bet + finalWin;
     setBalance(predictedBalance);
+
+    // Trigger confetti on big win
+    if (finalWin > 0 && finalCoeff >= 3) {
+        setShowConfetti(true);
+        setTimeout(() => setShowConfetti(false), 3000);
+    }
 
     if (user?.id) {
        const { data: newServerBalance } = await supabase.rpc('finish_game', {
@@ -202,7 +203,6 @@ function App() {
               });
           }
           
-          // Sync balance to server (fire and forget for now)
           if(user?.id) {
              supabase.rpc('finish_game', { 
                  p_telegram_id: user.id, p_game: 'Shop', p_bet: item.cost, p_win: 0, p_coefficient: 0 
@@ -254,11 +254,11 @@ function App() {
       case View.HILO:
         return <HiLoGame balance={balance} onGameEnd={handleGameEnd} settings={getSettings('hilo')} />;
       case View.WALLET:
-        return <Wallet />;
+        return <Wallet userId={user?.id} balance={balance} setBalance={setBalance} />;
       case View.ADMIN:
         return <Admin />;
       default:
-        return <Home setView={setCurrentView} userId={user?.id} user={user} activeBooster={activeBooster} />;
+        return <Home setView={setCurrentView} userId={user?.id} user={user} activeBooster={activeBooster} setBalance={setBalance} />;
     }
   };
 
@@ -270,6 +270,7 @@ function App() {
       user={user} 
       activeDecoration={activeDecoration}
     >
+      {showConfetti && <Confetti />}
       {renderView()}
     </Layout>
   );
