@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
-import { View } from '../types';
-import { Rocket, Bomb, Coins, Flame, Play, Trophy, Star, TrendingUp, Zap, Crown, Gamepad2 } from 'lucide-react';
+import { View, GameHistoryItem } from '../types';
+import { Rocket, Bomb, Coins, TrendingUp, History, Trophy, Sparkles, User, Zap, Crown } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { supabase } from '../lib/supabase';
 import { motion } from 'framer-motion';
@@ -9,212 +9,164 @@ import { motion } from 'framer-motion';
 interface HomeProps {
   setView: (view: View) => void;
   userId?: number;
+  user?: any;
+  activeBooster?: any;
 }
 
-// Компонент бегущей строки с выигрышами (Live Wins)
-const LiveTicker = () => {
-    const [wins, setWins] = useState<any[]>([]);
+export const Home: React.FC<HomeProps> = ({ setView, userId, user, activeBooster }) => {
+  const [history, setHistory] = useState<GameHistoryItem[]>([]);
+  const [stats, setStats] = useState({ won: 0, lost: 0, total_games: 0 });
 
-    useEffect(() => {
-        // Фейковые данные (Анонимные игроки, чтобы не было "Мелстроев")
-        const fakes = [
-            { id: 1, user: 'User772', game: 'Slots', win: 15000, mult: 50 },
-            { id: 2, user: 'Alex_Viht', game: 'Crash', win: 4200, mult: 2.1 },
-            { id: 3, user: 'Winner_01', game: 'Mines', win: 8500, mult: 4.5 },
-            { id: 4, user: 'Lucky_Guy', game: 'Roulette', win: 3600, mult: 36 },
-            { id: 5, user: 'Player_One', game: 'Dice', win: 1000, mult: 1.9 },
-        ];
-        setWins(fakes);
+  useEffect(() => {
+    if (userId) {
+        fetchHistory();
+    }
+  }, [userId]);
 
-        const channel = supabase
-            .channel('public:game_history')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'game_history' }, (payload) => {
-                const newWin = payload.new;
-                if (newWin.win > 0) {
-                    setWins(prev => [{
-                        id: newWin.id,
-                        user: `Игрок ${newWin.telegram_id.toString().slice(-4)}`, 
-                        game: newWin.game,
-                        win: newWin.win,
-                        mult: newWin.coefficient
-                    }, ...prev].slice(0, 10));
-                }
-            })
-            .subscribe();
+  const fetchHistory = async () => {
+    // Fetch last 5 games for this user
+    const { data } = await supabase
+        .from('game_history')
+        .select('*')
+        .eq('telegram_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(5);
 
-        return () => { supabase.removeChannel(channel); };
-    }, []);
+    if (data) {
+        setHistory(data);
+        // Calculate basic stats from these 5 (or fetch real agg stats)
+        const won = data.filter(g => g.win > 0).reduce((acc, curr) => acc + curr.win, 0);
+        const lost = data.filter(g => g.win === 0).reduce((acc, curr) => acc + curr.bet, 0);
+        setStats({ won, lost, total_games: data.length });
+    }
+  };
 
-    return (
-        <div className="w-full overflow-hidden bg-[#0a0a0a] border-b border-white/5 py-2 mb-4 relative z-20 shadow-md">
-            <div className="flex gap-4 animate-ticker w-max">
-                {[...wins, ...wins, ...wins].map((win, idx) => (
-                    <div key={`${win.id}-${idx}`} className="flex items-center gap-2 bg-[#121214] px-3 py-1.5 rounded-full border border-white/5 shrink-0">
-                        <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[10px] text-white font-bold">
-                            {win.game[0]}
-                        </div>
-                        <div className="flex flex-col leading-none">
-                            <span className="text-[10px] text-slate-400 font-bold uppercase">{win.user}</span>
-                        </div>
-                        <span className="text-xs text-brand-glow font-mono font-black">
-                            +{win.win.toLocaleString()} ₽
-                        </span>
-                    </div>
-                ))}
-            </div>
-            <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#050505] to-transparent z-10"></div>
-            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#050505] to-transparent z-10"></div>
-        </div>
-    );
-};
-
-export const Home: React.FC<HomeProps> = ({ setView, userId }) => {
   return (
-    <div className="min-h-screen bg-[#050505] text-white font-inter relative pb-24 overflow-x-hidden">
+    <div className="p-4 flex flex-col gap-6">
       
-      {/* Background Glow */}
-      <div className="fixed inset-0 pointer-events-none">
-          <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-brand/5 blur-[120px] rounded-full" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-brand/5 blur-[120px] rounded-full" />
-      </div>
+      {/* 1. Profile Card (Glass) */}
+      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 relative overflow-hidden shadow-2xl">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-brand/20 blur-[50px] rounded-full pointer-events-none"></div>
+          
+          <div className="flex items-center gap-4 relative z-10">
+              <div className="w-16 h-16 rounded-full bg-black/40 border border-white/10 flex items-center justify-center overflow-hidden shadow-lg">
+                  {user?.photo_url ? (
+                      <img src={user.photo_url} className="w-full h-full object-cover" />
+                  ) : (
+                      <User size={32} className="text-slate-400" />
+                  )}
+              </div>
+              <div>
+                  <h2 className="text-xl font-bold text-white">{user?.first_name || 'Игрок'}</h2>
+                  <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs font-bold bg-yellow-500/20 text-yellow-400 px-2 py-0.5 rounded border border-yellow-500/30 flex items-center gap-1">
+                          <Crown size={10} /> VIP 1
+                      </span>
+                      <span className="text-xs text-slate-400">ID: {userId?.toString().slice(-4)}</span>
+                  </div>
+              </div>
+          </div>
 
-      {/* Live Ticker */}
-      <LiveTicker />
-
-      {/* Hero Banner (Брендовый) */}
-      <div className="px-4 mb-8">
-         <div className="relative w-full aspect-[21/9] rounded-3xl overflow-hidden shadow-[0_0_30px_rgba(139,92,246,0.15)] border border-white/10 group cursor-pointer bg-[#0f0f11]">
-            <div className="absolute inset-0 bg-gradient-to-r from-brand-dark to-[#0f0f11] z-0"></div>
-            
-            {/* Декоративные элементы */}
-            <div className="absolute right-0 top-0 h-full w-1/2 bg-[url('https://images.unsplash.com/photo-1635322966219-b75ed372eb01?q=80&w=600')] bg-cover bg-center opacity-40 mix-blend-overlay mask-gradient"></div>
-            
-            <div className="absolute inset-0 flex flex-col justify-center px-6 z-10">
-               <motion.div 
-                 initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}
-                 className="flex items-center gap-2 mb-2"
-               >
-                  <Crown size={16} className="text-brand-accent" />
-                  <span className="text-brand-accent font-bold text-xs uppercase tracking-widest">Premium Casino</span>
-               </motion.div>
-               
-               <motion.h1 
-                 initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}
-                 className="text-3xl md:text-4xl font-display font-black italic uppercase leading-none mb-4"
-               >
-                  VIHT <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand to-brand-glow">GAME</span>
-               </motion.h1>
-
-               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
-                  <Button onClick={() => setView(View.GAMES_LIST)} variant="primary" size="sm" className="w-max px-6">
-                     НАЧАТЬ ИГРУ
-                  </Button>
-               </motion.div>
-            </div>
-         </div>
-      </div>
-
-      {/* Quick Access Menu */}
-      <div className="px-4 mb-8">
-          <div className="grid grid-cols-4 gap-3">
-              {[
-                  { icon: Flame, label: "Топ", color: "text-orange-500", bg: "bg-orange-500/10", view: View.GAMES_LIST },
-                  { icon: Rocket, label: "Crash", color: "text-indigo-400", bg: "bg-indigo-500/10", view: View.CRASH },
-                  { icon: Bomb, label: "Mines", color: "text-emerald-400", bg: "bg-emerald-500/10", view: View.MINES },
-                  { icon: Coins, label: "Slots", color: "text-pink-400", bg: "bg-pink-500/10", view: View.SLOTS },
-              ].map((item, i) => (
-                  <button key={i} onClick={() => setView(item.view)} className="flex flex-col items-center gap-2 group">
-                      <div className={`w-14 h-14 rounded-2xl ${item.bg} flex items-center justify-center border border-white/5 group-hover:scale-105 transition-transform duration-300 shadow-lg`}>
-                          <item.icon size={24} className={item.color} />
-                      </div>
-                      <span className="text-[11px] font-bold text-slate-400 group-hover:text-white transition-colors uppercase tracking-wide">{item.label}</span>
-                  </button>
-              ))}
+          <div className="mt-6 flex gap-4">
+              <div className="flex-1 bg-black/20 rounded-2xl p-3 border border-white/5">
+                  <span className="text-[10px] text-slate-500 uppercase font-bold block mb-1">Всего Выиграно</span>
+                  <span className="text-lg font-mono font-bold text-green-400">+{stats.won.toLocaleString()} ₽</span>
+              </div>
+              <div className="flex-1 bg-black/20 rounded-2xl p-3 border border-white/5">
+                  <span className="text-[10px] text-slate-500 uppercase font-bold block mb-1">Всего Игр</span>
+                  <span className="text-lg font-mono font-bold text-white">{stats.total_games}</span>
+              </div>
           </div>
       </div>
 
-      {/* Popular Games Section */}
-      <div className="px-4 mb-8">
-         <div className="flex items-center gap-2 mb-4">
-            <Trophy size={18} className="text-brand" />
-            <h2 className="text-lg font-display font-bold uppercase tracking-wide text-white">Популярное</h2>
-         </div>
-         
-         <div className="grid grid-cols-2 gap-3">
-             {/* CRASH LARGE CARD */}
-             <div onClick={() => setView(View.CRASH)} className="col-span-2 relative h-32 bg-[#121214] rounded-2xl overflow-hidden border border-white/5 cursor-pointer group shadow-lg">
-                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-900/40 to-transparent"></div>
-                 <div className="absolute right-[-20px] top-[-20px] w-40 h-40 bg-indigo-600/20 blur-[50px] rounded-full"></div>
-                 
-                 <div className="absolute inset-0 flex items-center justify-between px-6">
-                    <div className="flex flex-col gap-1">
-                        <span className="bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded text-[10px] font-bold w-max border border-indigo-500/20">LIVE</span>
-                        <h3 className="text-2xl font-black italic uppercase tracking-tighter">CRASH</h3>
-                        <p className="text-xs text-slate-400 font-medium">Успей забрать до взрыва</p>
-                    </div>
-                    <Rocket size={48} className="text-indigo-500 drop-shadow-[0_0_15px_rgba(99,102,241,0.5)] -rotate-12 group-hover:scale-110 transition-transform duration-300" />
-                 </div>
-             </div>
-
-             {/* MINES CARD */}
-             <div onClick={() => setView(View.MINES)} className="relative h-32 bg-[#121214] rounded-2xl overflow-hidden border border-white/5 cursor-pointer group shadow-lg flex flex-col justify-between p-4">
-                 <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-600/10 blur-[30px]"></div>
-                 <div className="flex justify-between items-start">
-                    <Bomb size={24} className="text-emerald-500" />
-                    <span className="text-[10px] font-bold text-slate-500">RTP 99%</span>
+      {/* 2. Active Booster Widget */}
+      {activeBooster ? (
+          <motion.div 
+            initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+            className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/50 rounded-2xl p-4 flex items-center justify-between shadow-[0_0_20px_rgba(234,179,8,0.2)]"
+          >
+             <div className="flex items-center gap-3">
+                 <div className="w-10 h-10 rounded-full bg-yellow-500 flex items-center justify-center text-black shadow-lg">
+                    <Zap size={20} fill="currentColor" />
                  </div>
                  <div>
-                    <h3 className="font-black italic uppercase tracking-tight text-lg">MINES</h3>
-                    <p className="text-[10px] text-slate-400">Сапер на деньги</p>
+                     <h3 className="font-bold text-white text-sm">Активный Бустер</h3>
+                     <p className="text-xs text-yellow-200">{activeBooster.label}</p>
                  </div>
              </div>
+             <div className="text-xs font-bold bg-black/40 px-3 py-1 rounded-lg text-white">
+                 1 ИГРА
+             </div>
+          </motion.div>
+      ) : (
+          <div onClick={() => setView(View.SHOP)} className="border border-dashed border-white/10 rounded-2xl p-4 flex items-center justify-center gap-2 text-slate-500 hover:bg-white/5 cursor-pointer transition-colors">
+              <Sparkles size={16} />
+              <span className="text-xs font-bold uppercase">Нет активных улучшений (Купить)</span>
+          </div>
+      )}
 
-             {/* SLOTS CARD */}
-             <div onClick={() => setView(View.SLOTS)} className="relative h-32 bg-[#121214] rounded-2xl overflow-hidden border border-white/5 cursor-pointer group shadow-lg flex flex-col justify-between p-4">
-                 <div className="absolute top-0 right-0 w-20 h-20 bg-pink-600/10 blur-[30px]"></div>
-                 <div className="flex justify-between items-start">
-                    <Coins size={24} className="text-pink-500" />
-                    <span className="text-[10px] font-bold text-pink-500 flex items-center gap-1">
-                        <Zap size={10} fill="currentColor" /> JACKPOT
-                    </span>
-                 </div>
-                 <div>
-                    <h3 className="font-black italic uppercase tracking-tight text-lg">SLOTS</h3>
-                    <p className="text-[10px] text-slate-400">Крути и выигрывай</p>
-                 </div>
-             </div>
-         </div>
+      {/* 3. Game History */}
+      <div>
+          <h3 className="text-sm font-bold text-slate-400 uppercase mb-3 flex items-center gap-2 px-1">
+              <History size={16} /> Последние игры
+          </h3>
+          <div className="flex flex-col gap-2">
+              {history.length > 0 ? history.map((item) => (
+                  <div key={item.id} className="bg-white/5 border border-white/5 rounded-2xl p-3 flex items-center justify-between backdrop-blur-md">
+                      <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold ${
+                             item.game === 'Crash' ? 'bg-indigo-500/20 text-indigo-400' :
+                             item.game === 'Mines' ? 'bg-emerald-500/20 text-emerald-400' :
+                             'bg-pink-500/20 text-pink-400'
+                          }`}>
+                              {item.game[0]}
+                          </div>
+                          <div>
+                              <p className="font-bold text-white text-sm">{item.game}</p>
+                              <p className="text-[10px] text-slate-500">{new Date(item.created_at).toLocaleTimeString()}</p>
+                          </div>
+                      </div>
+                      <div className="text-right">
+                          <p className={`font-mono font-bold text-sm ${item.win > 0 ? 'text-green-400' : 'text-slate-500'}`}>
+                              {item.win > 0 ? `+${item.win.toFixed(0)} ₽` : `-${item.bet.toFixed(0)} ₽`}
+                          </p>
+                          <p className="text-[10px] text-slate-500 font-bold">x{item.coefficient.toFixed(2)}</p>
+                      </div>
+                  </div>
+              )) : (
+                  <div className="text-center py-8 text-slate-600 text-xs">Нет истории игр</div>
+              )}
+          </div>
       </div>
 
-      {/* All Games Mini Grid */}
-      <div className="px-4">
-         <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-display font-bold uppercase tracking-wide text-white">Все игры</h2>
-            <button onClick={() => setView(View.GAMES_LIST)} className="text-xs font-bold text-slate-500 hover:text-white transition-colors">
-                Смотреть все
-            </button>
-         </div>
-
-         <div className="grid grid-cols-4 gap-2">
-             <div onClick={() => setView(View.ROULETTE)} className="aspect-square bg-[#121214] rounded-xl flex items-center justify-center border border-white/5 hover:bg-white/5 transition-colors">
-                <div className="text-center">
-                    <span className="text-2xl">🔴</span>
-                </div>
+      {/* 4. Popular Games */}
+      <div>
+          <div className="flex items-center justify-between mb-3 px-1">
+             <h3 className="text-sm font-bold text-slate-400 uppercase flex items-center gap-2">
+                <TrendingUp size={16} /> Популярное
+             </h3>
+             <button onClick={() => setView(View.GAMES_LIST)} className="text-[10px] text-brand hover:text-white transition-colors">
+                ВСЕ ИГРЫ
+             </button>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+             <div onClick={() => setView(View.CRASH)} className="bg-[#151517] rounded-2xl p-4 relative overflow-hidden group border border-white/5 cursor-pointer">
+                 <div className="absolute right-[-10px] bottom-[-10px] opacity-20 group-hover:opacity-40 transition-opacity">
+                     <Rocket size={60} className="text-indigo-500" />
+                 </div>
+                 <h4 className="font-black italic text-lg uppercase z-10 relative">Crash</h4>
+                 <p className="text-[10px] text-slate-500 z-10 relative">Популярность: 🔥🔥🔥</p>
              </div>
-             <div onClick={() => setView(View.DICE)} className="aspect-square bg-[#121214] rounded-xl flex items-center justify-center border border-white/5 hover:bg-white/5 transition-colors">
-                <div className="text-center">
-                    <span className="text-2xl">🎲</span>
-                </div>
+             
+             <div onClick={() => setView(View.MINES)} className="bg-[#151517] rounded-2xl p-4 relative overflow-hidden group border border-white/5 cursor-pointer">
+                 <div className="absolute right-[-10px] bottom-[-10px] opacity-20 group-hover:opacity-40 transition-opacity">
+                     <Bomb size={60} className="text-emerald-500" />
+                 </div>
+                 <h4 className="font-black italic text-lg uppercase z-10 relative">Mines</h4>
+                 <p className="text-[10px] text-slate-500 z-10 relative">Выбор игроков</p>
              </div>
-             <div onClick={() => setView(View.COINFLIP)} className="aspect-square bg-[#121214] rounded-xl flex items-center justify-center border border-white/5 hover:bg-white/5 transition-colors">
-                <div className="text-center">
-                    <span className="text-2xl">🦅</span>
-                </div>
-             </div>
-             <div onClick={() => setView(View.GAMES_LIST)} className="aspect-square bg-[#121214] rounded-xl flex items-center justify-center border border-white/5 hover:bg-white/5 transition-colors">
-                 <span className="font-bold text-xs text-slate-500">+4</span>
-             </div>
-         </div>
+          </div>
       </div>
 
     </div>

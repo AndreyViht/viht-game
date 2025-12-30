@@ -1,3 +1,4 @@
+
 export enum View {
   HOME = 'HOME',
   GAMES_LIST = 'GAMES_LIST',
@@ -11,6 +12,8 @@ export enum View {
   HILO = 'HILO',
   WALLET = 'WALLET',
   ADMIN = 'ADMIN',
+  SHOP = 'SHOP',
+  LEADERS = 'LEADERS'
 }
 
 export interface UserState {
@@ -42,4 +45,21 @@ export interface GameInfo {
   image: string;
   view: View;
   color: string;
+}
+
+export interface ShopItem {
+  id: string;
+  type: 'decoration' | 'booster';
+  name: string;
+  description: string;
+  cost: number;
+  effect?: string; // CSS class for decoration or logic key for booster
+  icon?: any;
+}
+
+export interface Booster {
+    id: string;
+    multiplier: number; // e.g., 3 for x3
+    saveOnLoss: boolean; // if true, booster is not consumed on loss (unless insurance)
+    label: string;
 }
