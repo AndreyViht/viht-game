@@ -4,12 +4,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../../components/ui/Button';
 import { HelpCircle, Info, Trophy, Zap } from 'lucide-react';
 import { GameRulesModal } from '../../components/ui/GameRulesModal';
-import { GameSettings } from '../../types';
+import { GameSettings, Booster } from '../../types';
+import { BoosterBadge } from '../../components/ui/BoosterBadge';
 
 interface SlotsGameProps {
   balance: number;
   onGameEnd: (game: string, bet: number, win: number, coefficient: number) => void;
   settings?: GameSettings;
+  activeBooster?: Booster | null;
 }
 
 // Конфигурация символов
@@ -28,7 +30,7 @@ const SYMBOLS = [
 const REEL_STRIP = [...SYMBOLS, ...SYMBOLS, ...SYMBOLS]; 
 const REEL_HEIGHT = 96; // Высота одной ячейки (h-24 = 6rem = 96px)
 
-export const SlotsGame: React.FC<SlotsGameProps> = ({ balance, onGameEnd, settings }) => {
+export const SlotsGame: React.FC<SlotsGameProps> = ({ balance, onGameEnd, settings, activeBooster }) => {
   const [betAmount, setBetAmount] = useState(10);
   const [isSpinning, setIsSpinning] = useState(false);
   const [reelOffsets, setReelOffsets] = useState([0, 0, 0]); // Смещение ленты для анимации
@@ -160,13 +162,15 @@ export const SlotsGame: React.FC<SlotsGameProps> = ({ balance, onGameEnd, settin
   };
 
   return (
-    <div className="flex flex-col items-center gap-4 py-4 px-2 max-w-lg mx-auto h-full">
+    <div className="flex flex-col items-center gap-4 py-4 px-2 max-w-lg mx-auto h-full relative">
+      <BoosterBadge booster={activeBooster} />
+
       {/* Header */}
-      <div className="w-full flex justify-between items-center px-2">
-        <h2 className="font-black italic text-3xl uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-600 drop-shadow-sm">
+      <div className="w-full flex justify-between items-center px-2 mt-6">
+        <h2 className="font-black italic text-3xl uppercase tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-purple-600 drop-shadow-sm ml-auto">
            NEON SLOTS
         </h2>
-        <div className="flex gap-2">
+        <div className="flex gap-2 ml-4">
             <button onClick={() => setShowRules(true)} className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 flex items-center justify-center text-slate-300 transition-colors">
             <HelpCircle size={20} />
             </button>

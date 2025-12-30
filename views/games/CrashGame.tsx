@@ -4,15 +4,17 @@ import { motion } from 'framer-motion';
 import { Rocket, HelpCircle, Plane } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { GameRulesModal } from '../../components/ui/GameRulesModal';
-import { GameSettings } from '../../types';
+import { GameSettings, Booster } from '../../types';
+import { BoosterBadge } from '../../components/ui/BoosterBadge';
 
 interface CrashGameProps {
   balance: number;
   onGameEnd: (game: string, bet: number, win: number, coefficient: number) => void;
   settings?: GameSettings;
+  activeBooster?: Booster | null;
 }
 
-export const CrashGame: React.FC<CrashGameProps> = ({ balance, onGameEnd, settings }) => {
+export const CrashGame: React.FC<CrashGameProps> = ({ balance, onGameEnd, settings, activeBooster }) => {
   const [betAmount, setBetAmount] = useState<number>(100);
   const [multiplier, setMultiplier] = useState<number>(1.00);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -28,6 +30,7 @@ export const CrashGame: React.FC<CrashGameProps> = ({ balance, onGameEnd, settin
   const crashPointRef = useRef<number>(0);
   const requestRef = useRef<number>(0);
   const startTimeRef = useRef<number>(0);
+  const gameActiveRef = useRef<boolean>(false); // Prevent double triggers
 
   const RULES = [
     "Сделайте ставку перед началом раунда.",
@@ -47,6 +50,8 @@ export const CrashGame: React.FC<CrashGameProps> = ({ balance, onGameEnd, settin
   };
 
   const updateGame = (timestamp: number) => {
+    if (!gameActiveRef.current) return;
+
     if (!startTimeRef.current) startTimeRef.current = timestamp;
     const duration = timestamp - startTimeRef.current;
     
@@ -72,6 +77,9 @@ export const CrashGame: React.FC<CrashGameProps> = ({ balance, onGameEnd, settin
   };
 
   const handleCrash = (finalMult: number) => {
+      if (!gameActiveRef.current) return;
+      gameActiveRef.current = false;
+      
       setMultiplier(finalMult);
       setCrashed(true);
       setIsPlaying(false);
@@ -81,7 +89,7 @@ export const CrashGame: React.FC<CrashGameProps> = ({ balance, onGameEnd, settin
   };
 
   const startGame = () => {
-    if (balance < betAmount) return; 
+    if (balance < betAmount || isPlaying) return; 
     setIsPlaying(true);
     setCrashed(false);
     setCashedOutAt(null);
@@ -90,32 +98,44 @@ export const CrashGame: React.FC<CrashGameProps> = ({ balance, onGameEnd, settin
     setPlanePosition({ x: 0, y: 300 });
     crashPointRef.current = generateCrashPoint();
     startTimeRef.current = 0;
+    gameActiveRef.current = true;
     requestRef.current = requestAnimationFrame(updateGame);
   };
 
   const handleCashout = () => {
-    if (!isPlaying || crashed || cashedOutAt) return;
+    if (!gameActiveRef.current) return;
+    gameActiveRef.current = false; // Immediately lock to prevent double cashout/crash race
+
     const current = multiplier;
     setCashedOutAt(current);
+    setIsPlaying(false); // Stop UI immediately
+    
     const winAmount = betAmount * current;
     onGameEnd('Crash', betAmount, winAmount, current);
+    
     if(navigator.vibrate) navigator.vibrate(50);
+    if (requestRef.current) cancelAnimationFrame(requestRef.current);
   };
 
   useEffect(() => {
-    return () => { if (requestRef.current) cancelAnimationFrame(requestRef.current); };
+    return () => { 
+        if (requestRef.current) cancelAnimationFrame(requestRef.current); 
+        gameActiveRef.current = false;
+    };
   }, []);
 
   const doubleBet = () => setBetAmount(prev => prev * 2);
   const halfBet = () => setBetAmount(prev => Math.max(1, Math.floor(prev / 2)));
 
   return (
-    <div className="flex flex-col h-full gap-4 max-w-5xl mx-auto pb-6 px-2">
+    <div className="flex flex-col h-full gap-4 max-w-5xl mx-auto pb-6 px-2 relative">
+      <BoosterBadge booster={activeBooster} />
+      
       <div className="flex justify-between items-center px-2 py-2">
-        <h2 className="font-black italic text-2xl uppercase tracking-tighter text-white flex items-center gap-2 drop-shadow-lg">
+        <h2 className="font-black italic text-2xl uppercase tracking-tighter text-white flex items-center gap-2 drop-shadow-lg ml-auto">
            КРАШ
         </h2>
-        <button onClick={() => setShowRules(true)} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300">
+        <button onClick={() => setShowRules(true)} className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300 ml-4">
           <HelpCircle size={18} />
         </button>
       </div>

@@ -4,18 +4,20 @@ import { motion } from 'framer-motion';
 import { Diamond, Bomb, HelpCircle } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { GameRulesModal } from '../../components/ui/GameRulesModal';
-import { GameSettings } from '../../types';
+import { GameSettings, Booster } from '../../types';
+import { BoosterBadge } from '../../components/ui/BoosterBadge';
 
 interface MinesGameProps {
   balance: number;
   onGameEnd: (game: string, bet: number, win: number, coefficient: number) => void;
   settings?: GameSettings;
+  activeBooster?: Booster | null;
 }
 
 const GRID_SIZE = 25;
 const MINE_COUNTS = [1, 3, 5, 10, 24];
 
-export const MinesGame: React.FC<MinesGameProps> = ({ balance, onGameEnd, settings }) => {
+export const MinesGame: React.FC<MinesGameProps> = ({ balance, onGameEnd, settings, activeBooster }) => {
   const [betAmount, setBetAmount] = useState<number>(10);
   const [minesCount, setMinesCount] = useState<number>(3);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -81,12 +83,14 @@ export const MinesGame: React.FC<MinesGameProps> = ({ balance, onGameEnd, settin
   };
 
   return (
-    <div className="flex flex-col gap-4 w-full max-w-lg mx-auto pb-4 px-4 min-h-[85vh]">
-      <div className="flex justify-between items-center">
-        <h2 className="font-black italic text-3xl uppercase tracking-tighter text-white flex items-center gap-2 drop-shadow-lg">
+    <div className="flex flex-col gap-4 w-full max-w-lg mx-auto pb-4 px-4 min-h-[85vh] relative">
+      <BoosterBadge booster={activeBooster} />
+      
+      <div className="flex justify-between items-center mt-6">
+        <h2 className="font-black italic text-3xl uppercase tracking-tighter text-white flex items-center gap-2 drop-shadow-lg ml-auto">
            МИНЫ
         </h2>
-        <button onClick={() => setShowRules(true)} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300">
+        <button onClick={() => setShowRules(true)} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-300 ml-4">
           <HelpCircle size={24} />
         </button>
       </div>

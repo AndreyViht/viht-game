@@ -164,7 +164,15 @@ function App() {
                 finalWin = bet; // Return 100%
                 setActiveBooster(null); // Consume
             } else {
-                setActiveBooster(null);
+                // If pure loss, no booster consumption unless it's a "save on loss" one?
+                // For now, only consume insurance on loss.
+                // Wait, logic above consumes insurance if id matches. If not matches (e.g. x2_win on loss), do we consume?
+                // Usually win boosters are only consumed on win.
+                if (activeBooster.id.includes('win')) {
+                    // Do not consume win boosters on loss
+                } else {
+                    setActiveBooster(null);
+                }
             }
         }
     }
@@ -244,11 +252,11 @@ function App() {
       case View.CASES:
         return <Cases balance={balance} onGameEnd={handleGameEnd} />;
       case View.CRASH:
-        return <CrashGame balance={balance} onGameEnd={handleGameEnd} settings={getSettings('crash')} />;
+        return <CrashGame balance={balance} onGameEnd={handleGameEnd} settings={getSettings('crash')} activeBooster={activeBooster} />;
       case View.MINES:
-        return <MinesGame balance={balance} onGameEnd={handleGameEnd} settings={getSettings('mines')} />;
+        return <MinesGame balance={balance} onGameEnd={handleGameEnd} settings={getSettings('mines')} activeBooster={activeBooster} />;
       case View.SLOTS:
-        return <SlotsGame balance={balance} onGameEnd={handleGameEnd} settings={getSettings('slots')} />;
+        return <SlotsGame balance={balance} onGameEnd={handleGameEnd} settings={getSettings('slots')} activeBooster={activeBooster} />;
       case View.COINFLIP:
         return <CoinFlipGame balance={balance} onGameEnd={handleGameEnd} settings={getSettings('coinflip')} />;
       case View.DICE:
